@@ -59,7 +59,8 @@ I downloaded the file before and load it to the tempfile to process it.
 
 ```{r Download the dataset , echo=TRUE, include=TRUE ,cache = TRUE}
 
-# Set path to the directory that contains the dataset
+# Set path to the directory that contains the dataset 
+#https://github.com/BaraJallad/SuicideRates/raw/main/master.csv.zip
 path <- "."
 filename <- "master.csv"
 fullpath <- file.path(path, filename)
@@ -141,30 +142,27 @@ Before 2000, we can see that the highest suicide rate is G.I. generation, and th
 
 ```{r  years and country, echo=TRUE , include=TRUE,cache=TRUE}
 
-df_country <- Suicide_Rates %>%  group_by(year, country) %>% summarise(rate = sum(rate))
-df_country %>%  
-  ggplot(aes(year,rate, col = country)) +
-  geom_line()
-
-
-
-
 
 df_new_country <- Suicide_Rates %>%  group_by( country) %>% summarise(rate = sum(rate))
 
 df_new_country %>% 
   ggplot(aes(rate,country),  width = 8, height = 300, res=36) + 
   geom_bar(stat="identity", color = "black")
+```
 
+The country which have the high rate of suicide, and the low one.
+```{r  MAx MIN , echo=TRUE , include=TRUE,cache=TRUE}
 
 which.max(df_new_country$rate)
 df_new_country[76,]
+
 which.min(df_new_country$rate)
 df_new_country[28,]
 ```
 
 
-
+The validation data should ONLY be used for evaluating the RMSE.
+The edx data will be used in the developed algorithm and to predict movie ratings.
 
 ```{r Find RMSE, echo=TRUE ,include=TRUE, cache=TRUE}
 
@@ -194,22 +192,32 @@ edx <- rbind(edx, removed)
 #rm is used to delete the unnecessary data to focus on what we are working on
 rm( test_index, temp, ds, removed, plot1)
 
+```
 
-##-------------------
+
+To find the RMSE which stand for (Residual Mean Squared Error), and we can calculate it mathematical on a test set, and We are going to create a datafram to compare the different results on it.
+
+
+```{r Create the function RMSE, echo=TRUE ,include=TRUE, cache=TRUE}
 
 #create function that computes the RMSE for vectors 
 RMSE <- function(true_ratings, predicted_ratings){
   sqrt(mean((true_ratings - predicted_ratings)^2))
 }
 
-
-
 #create data frame to save the results on it
 the_final_results <- tibble ()
 #find the mean of raiting
 mu <- mean(edx$rate)  
 mu
+```
+The function to find the RMSE is ready to use.
 
+#Apply Models
+Now we are going to use the models to find the best way to predict the new data set.
+
+####  Model 1 - Average ####  
+```{r  Model 1 - Average , echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 1 - Average #####
 #Simplest possible model
@@ -226,10 +234,12 @@ RMSE(validation$rate, predictions)
 # create a table to display all the calculated rmses
 the_final_results <- tibble(method = "Just the average", RMSE = average_rmse)
 
+```
+This is the simplest way.
 
+#### Model 2 - Country Effect ####
 
-
-
+```{r Model 2 - Country Effect, echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 2 - Country Effect #####
 #we are going to group the data by country to find  c_m for each country with the equation mean(rate - average)
@@ -248,13 +258,12 @@ rmse_country_effect <- RMSE(validation$rate, country_pred_rate)
 the_final_results <- bind_rows(the_final_results,
                                tibble(method = "Average + Country Effect", RMSE = rmse_country_effect)) 
 rmse_country_effect
+```
+Lets try another model.
 
+#### Model 3 - age Effect #### 
 
-
-
-
-
-
+```{r Model 3 - age Effect, echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 3 - age Effect #####
 #we are going to group the data by age to find  a_m for each age with the equation mean(rate - average)
@@ -273,12 +282,13 @@ rmse_age_effect <- RMSE(validation$rate, age_pred_rate)
 the_final_results <- bind_rows(the_final_results,
                                tibble(method = "Average + Age Effect", RMSE = rmse_age_effect)) 
 rmse_age_effect
+```
 
 
+#### Model 4 - year Effect ####
 
 
-
-
+```{r Model 4 - year Effect, echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 4 - year Effect #####
 #we are going to group the data by year to find  y_m for each year with the equation mean(rate - average)
@@ -297,8 +307,11 @@ rmse_year_effect <- RMSE(validation$rate, year_pred_rate)
 the_final_results <- bind_rows(the_final_results,
                                tibble(method = "Average + Year Effect", RMSE = rmse_year_effect)) 
 rmse_year_effect
+```
 
+#### Model 5 - Country Regularization ####  
 
+```{r Model 5 - Country Regularization, echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 5 - Country Regularization ##### 
 
@@ -323,10 +336,11 @@ rmse_reg_country_effect <- min(reg_country_rmses)
 the_final_results <- bind_rows(the_final_results,
                                tibble(method = "Average + Country Effect + Regularization", RMSE = rmse_reg_country_effect)) 
 rmse_reg_country_effect
+```
 
+####  Model 6 - generation Effect ####  
 
-
-
+```{r Model 6 - generation Effect, echo=TRUE ,include=TRUE, cache=TRUE}
 
 ##### Model 6 - generation Effect #####
 #we are going to group the data by generation to find  g_m for generation year with the equation mean(rate - average)
@@ -347,4 +361,21 @@ the_final_results <- bind_rows(the_final_results,
 rmse_generation_effect
 
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Results
+```{r Results, echo=TRUE ,include=TRUE, cache=TRUE}
+
+the_final_results
+```
+
+Here we can export the predicted rate data to csv file.
+```{r Export The Predicted Data , echo=TRUE, include=TRUE, cashe= TRUE}
+
+#export the data as csv 
+write.csv(validation %>% select(country, year,sex,age,  rate,      generation) %>% mutate(rating = generation_pred_rate),
+          "Predicted.csv", na = "", row.names=FALSE)
+```
+The Predicted.csv is exported through the code.
+
+## Conclusion
+In general, the suicide rate is related to several factors like age, sex, country, and the years.Every factor will affect different than the other like the age we can see the suicide people are old more than the young, and so on, so we can find more factor and study it deeply.
