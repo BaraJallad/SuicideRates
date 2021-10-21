@@ -89,14 +89,6 @@ df_generation %>%
 
 
 #Obviously, the suicide rate is getting higher when the age is higher. That is, age is a factor of suicide.
-df_country <- Suicide_Rates %>%  group_by(year, country) %>% summarise(rate = sum(rate))
-df_country %>%  
-  ggplot(aes(year,rate, col = country)) +
-  geom_line()
-
-
-
-
 
 df_new_country <- Suicide_Rates %>%  group_by( country) %>% summarise(rate = sum(rate))
 
@@ -111,22 +103,6 @@ which.min(df_new_country$rate)
 df_new_country[28,]
 
 
-
-
-#
-# Histgram
-#Suicide_Rates %>% 
-# ggplot(aes(rate,  country )) +
-#  geom_point() +
-#  scale_x_continuous(trans = "log2") 
-
-
-#Suicide_Rates %>% 
-#  ggplot(aes(country, rate)) +
-#  geom_boxplot() +
-#  scale_y_continuous(trans = "log2") +
-#  xlab("") +
-#  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
 
 
 
@@ -308,6 +284,7 @@ the_final_results <- bind_rows(the_final_results,
                                tibble(method = "Average + Generation Effect", RMSE = rmse_generation_effect)) 
 rmse_generation_effect
 
+the_final_results
 
 #export the data as csv 
 write.csv(validation %>% select(country, year,sex,age,  rate,      generation) %>% mutate(rating = generation_pred_rate),
